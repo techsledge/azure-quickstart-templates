@@ -2,36 +2,27 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "createChildDomain": {
-      "type": "bool",
-      "metadata": {
-        "description": "Do you want a child domain? If false, the parameters for the child domain are ignored. "
-      },
-      "defaultValue": true
-    },
     "createSecondDc": {
       "type": "bool",
       "metadata": {
-        "description": "Do you want a second DC in each domain? If false: parameters for DC2 and DC4 are ignored. "
+        "description": "Do you want a second DC?"
       },
-      "defaultValue": false
+      "defaultValue": true
+    },
+    "createRDS1": {
+      "type": "bool",
+      "metadata": {
+        "description": "Do you want a RDS Server?"
+      },
+      "defaultValue": true
     },
     "DomainName": {
       "type": "string",
       "metadata": {
         "description": "Full FQDN name for the forest root domain."
       },
-      "defaultValue": "contoso.com",
+      "defaultValue": "customer.co.nz",
       "minlength": 4
-    },
-    "ChildDomainName": {
-      "type": "string",
-      "metadata": {
-        "description": "SHORT name for the child domain. New AD trees are not allowed."
-      },
-      "defaultValue": "child",
-      "minlength": 2,
-      "maxlength": 15
     },
     "adminUsername": {
       "type": "string",
@@ -50,22 +41,10 @@
     "VMSize": {
       "type": "string",
       "allowedValues": [
-        "Basic_A1",
-        "Basic_A2",
-        "Basic_A3",
-        "Standard_A1_v2",
-        "Standard_A2_v2",
-        "Standard_A3",
         "Standard_B1ms",
         "Standard_B2s",
         "Standard_B2ms",
-        "Standard_B4ms",
-        "Standard_D1_v2",
-        "Standard_D2_v2",
-        "Standard_D3_v2",
-        "Standard_DS1_v2",
-        "Standard_DS2_v2",
-        "Standard_DS3_v2"
+        "Standard_B4ms"
       ],
       "metadata": {
         "description": "The size and type of the VM. *_DS* or *s types support Premium Disks."
@@ -75,22 +54,15 @@
     "imageSKU": {
       "type": "string",
       "defaultValue": "2019-Datacenter",
-      "allowedValues": [
-        "2012-Datacenter",
-        "2012-R2-Datacenter",
-        "2016-Datacenter",
-        "2019-Datacenter"
-      ],
       "metadata": {
         "description": "Windows Server Version."
       }
     },
     "diskType": {
       "type": "string",
-      "defaultValue": "StandardSSD_LRS",
+      "defaultValue": "Premium_LRS",
       "allowedValues": [
         "StandardSSD_LRS",
-        "Standard_LRS",
         "Premium_LRS"
       ],
       "metadata": {
@@ -168,37 +140,21 @@
       },
       "defaultValue": "10.0.0.5"
     },
-    "ChildDC3Name": {
+    "RDS1Name": {
       "type": "string",
       "metadata": {
-        "description": "The computer name of the first DC of the CHILD domain."
+        "description": "The computer name of the second DC of the root domain."
       },
-      "defaultValue": "childdc3",
+      "defaultValue": "rds1",
       "minlength": 2,
       "maxlength": 15
     },
-    "ChildDC3IPAddress": {
+    "RDS1IPAddress": {
       "type": "string",
       "metadata": {
-        "description": "The IP address of the first DC of the CHILD domain."
+        "description": "The IP address of the second DC of the root domain."
       },
       "defaultValue": "10.0.0.6"
-    },
-    "ChildDC4Name": {
-      "type": "string",
-      "metadata": {
-        "description": "The computer name of the second DC of the CHILD domain."
-      },
-      "defaultValue": "childdc4",
-      "minlength": 2,
-      "maxlength": 15
-    },
-    "ChildDC4IPAddress": {
-      "type": "string",
-      "metadata": {
-        "description": "The IP address of the second DC of the CHILD domain."
-      },
-      "defaultValue": "10.0.0.7"
     },
     "location": {
       "type": "string",
@@ -412,104 +368,6 @@
       }
     },
     {
-      "name": "CreateADVM3",
-      "type": "Microsoft.Resources/deployments",
-      "condition": "[parameters('createChildDomain')]",
-      "apiVersion": "2018-08-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','CreateVNET')]",
-        "[resourceId('Microsoft.Compute/availabilitySets', variables('adAvailabilitySetNameChild'))]"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('firstVMTemplateUri')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "virtualNetworkName": {
-            "value": "[parameters('virtualNetworkName')]"
-          },
-          "subnetName": {
-            "value": "[parameters('adSubnetName')]"
-          },
-          "adAvailabilitySetName": {
-            "value": "[variables('adAvailabilitySetNameChild')]"
-          },
-          "vmName": {
-            "value": "[parameters('ChildDC3Name')]"
-          },
-          "vmIpAddress": {
-            "value": "[parameters('ChildDC3IPAddress')]"
-          },
-          "adminUsername": {
-            "value": "[parameters('adminUsername')]"
-          },
-          "adminPassword": {
-            "value": "[parameters('adminPassword')]"
-          },
-          "vmSize": {
-            "value": "[parameters('VMSize')]"
-          },
-          "diskType": {
-            "value": "[parameters('diskType')]"
-          },
-          "imageSKU": {
-            "value": "[parameters('imageSKU')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          }
-        }
-      }
-    },
-    {
-      "name": "CreateChildDomain",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-08-01",
-      "condition": "[parameters('createChildDomain')]",
-      "dependsOn": [
-        "Microsoft.Resources/deployments/CreateADVM3",
-        "Microsoft.Resources/deployments/CreateForest"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('createChildDomainTemplateUri')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "vmName": {
-            "value": "[parameters('ChildDC3Name')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "adminUsername": {
-            "value": "[parameters('adminUsername')]"
-          },
-          "adminPassword": {
-            "value": "[parameters('adminPassword')]"
-          },
-          "parentDomainName": {
-            "value": "[parameters('domainName')]"
-          },
-          "childDomainName": {
-            "value": "[parameters('ChildDomainName')]"
-          },
-          "DNSForwarder": {
-            "value": "[parameters('RootDC1IPAddress')]"
-          },
-          "_artifactsLocation": {
-            "value": "[parameters('_artifactsLocation')]"
-          },
-          "_artifactsLocationSasToken": {
-            "value": "[parameters('_artifactsLocationSasToken')]"
-          }
-        }
-      }
-    },
-    {
       "name": "CreateADVM2",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-08-01",
@@ -605,101 +463,6 @@
       }
     },
     {
-      "name": "CreateADVM4",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2018-08-01",
-      "condition": "[and(parameters('createSecondDc'), parameters('createChildDomain'))]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments','CreateVNET')]",
-        "[resourceId('Microsoft.Compute/availabilitySets', variables('adAvailabilitySetNameChild'))]"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('nextVMTemplateUri')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "virtualNetworkName": {
-            "value": "[parameters('virtualNetworkName')]"
-          },
-          "subnetName": {
-            "value": "[parameters('adSubnetName')]"
-          },
-          "adAvailabilitySetName": {
-            "value": "[variables('adAvailabilitySetNameChild')]"
-          },
-          "vmName": {
-            "value": "[parameters('ChildDC4Name')]"
-          },
-          "vmIpAddress": {
-            "value": "[parameters('ChildDC4IPAddress')]"
-          },
-          "adminUsername": {
-            "value": "[parameters('adminUsername')]"
-          },
-          "adminPassword": {
-            "value": "[parameters('adminPassword')]"
-          },
-          "vmSize": {
-            "value": "[parameters('VMSize')]"
-          },
-          "diskType": {
-            "value": "[parameters('diskType')]"
-          },
-          "imageSKU": {
-            "value": "[parameters('imageSKU')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          }
-        }
-      }
-    },
-    {
-      "name": "ConfiguringChildDC4",
-      "type": "Microsoft.Resources/deployments",
-      "condition": "[and(parameters('createSecondDc'), parameters('createChildDomain'))]",
-      "apiVersion": "2018-08-01",
-      "dependsOn": [
-        "Microsoft.Resources/deployments/CreateADVM4",
-        "Microsoft.Resources/deployments/CreateChildDomain"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('configureADNextDCTemplateUri')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "adNextDCVMName": {
-            "value": "[parameters('ChildDC4Name')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "adminUsername": {
-            "value": "[parameters('adminUsername')]"
-          },
-          "adminPassword": {
-            "value": "[parameters('adminPassword')]"
-          },
-          "domainName": {
-            "value": "[concat(parameters('childDomainName'), '.', parameters('domainName'))]"
-          },
-          "DNSServer": {
-            "value": "[parameters('ChildDC3IPAddress')]"
-          },
-          "adNextDCConfigurationFunction": {
-            "value": "[variables('nextDCConfigurationFunction')]"
-          },
-          "adNextDCConfigurationModulesURL": {
-            "value": "[variables('nextDCConfigurationModulesURL')]"
-          }
-        }
-      }
-    },
-    {
       "name": "UpdateVNet",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-08-01",
@@ -726,7 +489,7 @@
             "value": "[parameters('adSubnet')]"
           },
           "NSGName": {
-            "value":  "[variables('adNSGName')]"
+            "value": "[variables('adNSGName')]"
           },
           "DNSServerAddress": {
             "value": [
@@ -736,6 +499,100 @@
           },
           "location": {
             "value": "[parameters('location')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "CreateRDS1",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-08-01",
+      "condition": "[parameters('createRDS1')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments','CreateVNET')]",
+        "[resourceId('Microsoft.Compute/availabilitySets', variables('adAvailabilitySetNameRoot'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('nextVMTemplateUri')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "virtualNetworkName": {
+            "value": "[parameters('virtualNetworkName')]"
+          },
+          "subnetName": {
+            "value": "[parameters('adSubnetName')]"
+          },
+          "adAvailabilitySetName": {
+            "value": "[variables('adAvailabilitySetNameRoot')]"
+          },
+          "vmName": {
+            "value": "[parameters('RDS1Name')]"
+          },
+          "vmIpAddress": {
+            "value": "[parameters('RDS1IPAddress')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "vmSize": {
+            "value": "[parameters('VMSize')]"
+          },
+          "diskType": {
+            "value": "[parameters('diskType')]"
+          },
+          "imageSKU": {
+            "value": "[parameters('imageSKU')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "ConfiguringRDS1",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2018-08-01",
+      "condition": "[parameters('createRDS1')]",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/CreateRDS1"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('configureADNextDCTemplateUri')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "adNextDCVMName": {
+            "value": "[parameters('RootDC2Name')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "domainName": {
+            "value": "[parameters('domainName')]"
+          },
+          "DNSServer": {
+            "value": "[parameters('RootDC1IPAddress')]"
+          },
+          "adNextDCConfigurationFunction": {
+            "value": "[variables('nextDCConfigurationFunction')]"
+          },
+          "adNextDCConfigurationModulesURL": {
+            "value": "[variables('nextDCConfigurationModulesURL')]"
           }
         }
       }
