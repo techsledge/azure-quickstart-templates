@@ -181,7 +181,6 @@
   "variables": {
     "adNSGName": "[concat(parameters('adSubnetName'),'NSG')]",
     "adAvailabilitySetNameRoot": "AvailSetRoot",
-    "adAvailabilitySetNameChild": "AvailSetChild",
     "firstVMTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/CreateAndPrepnewVM.json',parameters('_artifactsLocationSasToken'))]",
     "nextVMTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/CreateAndPrepnewVM.json',parameters('_artifactsLocationSasToken'))]",
     "vnetTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/vnet.json',parameters('_artifactsLocationSasToken'))]",
@@ -410,7 +409,7 @@
       "apiVersion": "2018-08-01",
       "condition": "[parameters('createSecondDc')]",
       "dependsOn": [
-        "Microsoft.Resources/deployments/CreateADVM2"
+        "Microsoft.Resources/deployments/CreateADVM2",
       ],
       "properties": {
         "mode": "Incremental",
