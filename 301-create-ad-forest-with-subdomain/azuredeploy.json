@@ -188,7 +188,6 @@
     "vnetwithDNSTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/vnet-with-dns-server.json',parameters('_artifactsLocationSasToken'))]",
     "configureADNextDCTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/configureADNextDC.json',parameters('_artifactsLocationSasToken'))]",
     "createForestTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/createForest.json',parameters('_artifactsLocationSasToken'))]",
-    "createChildDomainTemplateUri": "[concat(parameters('_artifactsLocation'),'/nested/createChildDomain.json',parameters('_artifactsLocationSasToken'))]",
     "nextDCConfigurationModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/ConfigureADNextDC.ps1.zip',parameters('_artifactsLocationSasToken'))]",
     "nextDCConfigurationFunction": "ConfigureADNextDC.ps1\\ConfigureADNextDC"
   },
@@ -197,20 +196,6 @@
       "name": "[variables('adAvailabilitySetNameRoot')]",
       "type": "Microsoft.Compute/availabilitySets",
       "apiVersion": "2018-06-01",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "Aligned"
-      },
-      "properties": {
-        "PlatformUpdateDomainCount": 3,
-        "PlatformFaultDomainCount": 2
-      }
-    },
-    {
-      "name": "[variables('adAvailabilitySetNameChild')]",
-      "type": "Microsoft.Compute/availabilitySets",
-      "apiVersion": "2018-06-01",
-      "condition": "[parameters('createChildDomain')]",
       "location": "[parameters('location')]",
       "sku": {
         "name": "Aligned"
@@ -425,8 +410,7 @@
       "apiVersion": "2018-08-01",
       "condition": "[parameters('createSecondDc')]",
       "dependsOn": [
-        "Microsoft.Resources/deployments/CreateADVM2",
-        "Microsoft.Resources/deployments/CreateChildDomain"
+        "Microsoft.Resources/deployments/CreateADVM2"
       ],
       "properties": {
         "mode": "Incremental",
@@ -467,7 +451,6 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-08-01",
       "dependsOn": [
-        "Microsoft.Resources/deployments/CreateChildDomain"
       ],
       "properties": {
         "mode": "Incremental",
